@@ -1,2 +1,2 @@
 # coinbaseR
-rapper for coinbase pro API
+Wrapper for coinbase pro API
