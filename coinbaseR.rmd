@@ -48,7 +48,7 @@ ticker('BTC-GBP')
 ticker.record(ID = 'btc-gbp', duration = '01:00:00', ticks.per.sec = 1)
 
 historic('BTC-GBP')
-historic('BTC-GBP', '2021-02-03 00:00:00', '2020-02-04 00:00:00')
+historic('BTC-GBP', '2021-02-02 00:00:00', '2020-02-04 00:00:00', granularity = 300)
 ```
 
 
@@ -84,7 +84,7 @@ account <- function(currency=NA){
 # List Profiles (portfolios)
 ```{r}
 profile <- function(ID=NA){
-  ID <- str_r
+  ID <- str_replace(ID, "/", "-")
   req.url <- "/profiles"
   method <- "GET"
   timestamp <- format(as.numeric(Sys.time()), digits=13)
@@ -181,9 +181,6 @@ products <- function(ID = NA){
     return(df[df[1] == ID,]) 
   }  
 }
-
-products('BTC/GBP')
-
 ```
 
 # Product ticker
@@ -215,16 +212,10 @@ ticker <- function(ID = NA){
     return(df) 
   }               
 }
-
-
-ticker('BTC-USD')
 ```
 
 # ticker record
 ```{r}
-ticker('btc-gbp')
-
-
 ticker.record <- function(ID=NA, duration=NA, ticks.per.sec=1){
   startdatetime <<- Sys.time()
   runs <<- period_to_seconds(hms(duration))*ticks.per.sec
@@ -241,7 +232,7 @@ ticker.record <- function(ID=NA, duration=NA, ticks.per.sec=1){
 
 
 
-ticker.record(ID = 'btc-gbp', duration = "00:01:00", ticks.per.sec = 1)
+ticker.record(ID = 'btc-gbp', duration = "00:00:10", ticks.per.sec = 1)
 
 
 
@@ -257,8 +248,8 @@ historic <-
            start = Sys.time() - 43200,
            end = Sys.time(),
            granularity = 300) {
-    start <- strftime(start, "%Y-%m-%dT%H:%M:%SZ", tz = system.timezone)
-    end <- strftime(end, "%Y-%m-%dT%H:%M:%SZ", tz = system.timezone)
+    start <- strftime(start, "%Y-%m-%dT%H:%M:%SZ", tz = s$system.timezone)
+    end <- strftime(end, "%Y-%m-%dT%H:%M:%SZ", tz = s$system.timezone)
     ID <- str_replace(ID, "/", "-")
     req.url <- paste0("/products/", ID, "/candles")
     param.url <-
@@ -266,7 +257,7 @@ historic <-
                 reserved = FALSE)
     method <- "GET"
     timestamp <- format(as.numeric(Sys.time()), digits = 13)
-    key <- base64Decode(secret, mode = "raw")
+    key <- base64Decode(s$secret, mode = "raw")
     what <- paste0(timestamp, toupper(method), req.url, param.url)
     sign <- base64Encode(hmac(key, what, algo = "sha256", raw = TRUE))
     r <- GET(
