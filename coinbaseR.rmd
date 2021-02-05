@@ -16,10 +16,14 @@ library(lubridate)
 
 #API setup
 ```{r}
-api.key <- "ABC"
-secret <- "DEF"
-passphrase <- "GHI"
-api.url <- "JKL"
+setup <- read.csv('setup.cfg')
+settings <- setup$setting
+values <- setup$value
+setup <- data.frame(t(values))
+colnames(setup) <- settings
+s <- setup
+
+print(s)
 ```
 
 # IMPLEMETED FUNCTIONS
@@ -44,7 +48,7 @@ ticker('BTC-GBP')
 ticker.record(ID = 'btc-gbp', duration = '01:00:00', ticks.per.sec = 1)
 
 historic('BTC-GBP')
-historic('BTC-GBP', '2021-02-03 00:00:00', '2020-02-04 00:00:00')
+historic('BTC-GBP', '2021-02-02 00:00:00', '2020-02-04 00:00:00', granularity = 300)
 ```
 
 
@@ -54,15 +58,15 @@ account <- function(currency=NA){
   req.url <- "/accounts"
   method <- "GET"
   timestamp <- format(as.numeric(Sys.time()), digits=13)
-  key <- base64Decode(secret, mode="raw")
+  key <- base64Decode(s$secret, mode="raw")
   what <- paste0(timestamp, toupper(method), req.url)
   sign <- base64Encode(hmac(key, what, algo="sha256", raw=TRUE))
   
-  r<- GET(url = paste0(api.url, req.url),
-      add_headers(`CB-ACCESS-KEY`= api.key,
+  r<- GET(url = paste0(s$api.url, req.url),
+      add_headers(`CB-ACCESS-KEY`= s$api.key,
                   `CB-ACCESS-SIGN`=sign,
                   `CB-ACCESS-TIMESTAMP`= timestamp,
-                  `CB-ACCESS-PASSPHRASE`=passphrase,
+                  `CB-ACCESS-PASSPHRASE`=s$passphrase,
                   `Content-Type`='application/json'))
   c <- content(r)
   
@@ -75,28 +79,24 @@ account <- function(currency=NA){
     return(df[df[2] == currency,])  
   }
 }
-
-
-account()
-account('ETH')
 ```
 
 # List Profiles (portfolios)
 ```{r}
 profile <- function(ID=NA){
-  ID <- str_r
+  ID <- str_replace(ID, "/", "-")
   req.url <- "/profiles"
   method <- "GET"
   timestamp <- format(as.numeric(Sys.time()), digits=13)
-  key <- base64Decode(secret, mode="raw")
+  key <- base64Decode(s$secret, mode="raw")
   what <- paste0(timestamp, toupper(method), req.url)
   sign <- base64Encode(hmac(key, what, algo="sha256", raw=TRUE))
   
-  r<- GET(url = paste0(api.url, req.url),
-      add_headers(`CB-ACCESS-KEY`= api.key,
+  r<- GET(url = paste0(s$api.url, req.url),
+      add_headers(`CB-ACCESS-KEY`= s$api.key,
                   `CB-ACCESS-SIGN`=sign,
                   `CB-ACCESS-TIMESTAMP`= timestamp,
-                  `CB-ACCESS-PASSPHRASE`=passphrase,
+                  `CB-ACCESS-PASSPHRASE`=s$passphrase,
                   `Content-Type`='application/json'))
   c <- content(r)
   
@@ -114,45 +114,41 @@ profile <- function(ID=NA){
 
 # GET ACCOUNT HISTORY
 ```{r}
-
-account.hist <- function(ID = NA){
-  if((is.na(ID) == FALSE) && nchar(ID)<5){
+account.hist <- function(ID = NA) {
+  if ((is.na(ID) == FALSE) && nchar(ID) < 5) {
     ID <- account(ID)[1]
-  }else{
-    ID <- ID 
+  } else{
+    ID <- ID
   }
   
   req.url <- paste0("/accounts/", ID, "/ledger")
   method <- "GET"
-  timestamp <- format(as.numeric(Sys.time()), digits=13)
-  key <- base64Decode(secret, mode="raw")
+  timestamp <- format(as.numeric(Sys.time()), digits = 13)
+  key <- base64Decode(s$secret, mode = "raw")
   what <- paste0(timestamp, toupper(method), req.url)
-  sign <- base64Encode(hmac(key, what, algo="sha256", raw=TRUE))
+  sign <- base64Encode(hmac(key, what, algo = "sha256", raw = TRUE))
   
-  r<- GET(url = paste0(api.url, req.url),
-      add_headers(`CB-ACCESS-KEY`= api.key,
-                  `CB-ACCESS-SIGN`=sign,
-                  `CB-ACCESS-TIMESTAMP`= timestamp,
-                  `CB-ACCESS-PASSPHRASE`=passphrase,
-                  `Content-Type`='application/json'))
+  r <- GET(
+    url = paste0(s$api.url, req.url),
+    add_headers(
+      `CB-ACCESS-KEY` = s$api.key,
+      `CB-ACCESS-SIGN` = sign,
+      `CB-ACCESS-TIMESTAMP` = timestamp,
+      `CB-ACCESS-PASSPHRASE` = s$passphrase,
+      `Content-Type` = 'application/json'
+    )
+  )
   c <- content(r)
   
-  df <- data.frame(matrix(unlist(c), nrow=length(c), byrow=T))
+  df <- data.frame(matrix(unlist(c), nrow = length(c), byrow = T))
   colnames(df) <- (names(c[[1]]))
-
-  if(is.na(ID)){
+  
+  if (is.na(ID)) {
     return("Must supply account ID or currency e.g. 'BTC', found using account() function.")
-  }else{
-    return(df)  
+  } else{
+    return(df)
   }
-
 }
-
-
-
-
-
-account("BTC")[1]
 ```
 
 
@@ -163,15 +159,15 @@ products <- function(ID = NA){
   req.url <- "/products"
   method <- "GET"
   timestamp <- format(as.numeric(Sys.time()), digits=13)
-  key <- base64Decode(secret, mode="raw")
+  key <- base64Decode(s$secret, mode="raw")
   what <- paste0(timestamp, toupper(method), req.url)
   sign <- base64Encode(hmac(key, what, algo="sha256", raw=TRUE))
   
-  r<- GET(url = paste0(api.url, req.url),
-      add_headers(`CB-ACCESS-KEY`= api.key,
+  r<- GET(url = paste0(s$api.url, req.url),
+      add_headers(`CB-ACCESS-KEY`= s$api.key,
                   `CB-ACCESS-SIGN`=sign,
                   `CB-ACCESS-TIMESTAMP`= timestamp,
-                  `CB-ACCESS-PASSPHRASE`=passphrase,
+                  `CB-ACCESS-PASSPHRASE`=s$passphrase,
                   `Content-Type`='application/json'))
   c <- content(r)
   
@@ -185,9 +181,6 @@ products <- function(ID = NA){
     return(df[df[1] == ID,]) 
   }  
 }
-
-products('BTC/GBP')
-
 ```
 
 # Product ticker
@@ -197,15 +190,15 @@ ticker <- function(ID = NA){
   req.url <- paste0("/products/", ID, "/ticker")
   method <- "GET"
   timestamp <- format(as.numeric(Sys.time()), digits=13)
-  key <- base64Decode(secret, mode="raw")
+  key <- base64Decode(s$secret, mode="raw")
   what <- paste0(timestamp, toupper(method), req.url)
   sign <- base64Encode(hmac(key, what, algo="sha256", raw=TRUE))
   
-  r<- GET(url = paste0(api.url, req.url),
-      add_headers(`CB-ACCESS-KEY`= api.key,
+  r<- GET(url = paste0(s$api.url, req.url),
+      add_headers(`CB-ACCESS-KEY`= s$api.key,
                   `CB-ACCESS-SIGN`=sign,
                   `CB-ACCESS-TIMESTAMP`= timestamp,
-                  `CB-ACCESS-PASSPHRASE`=passphrase,
+                  `CB-ACCESS-PASSPHRASE`=s$passphrase,
                   `Content-Type`='application/json'))
   c <- content(r)
   
@@ -219,16 +212,10 @@ ticker <- function(ID = NA){
     return(df) 
   }               
 }
-
-
-ticker('BTC-USD')
 ```
 
 # ticker record
 ```{r}
-ticker('btc-gbp')
-
-
 ticker.record <- function(ID=NA, duration=NA, ticks.per.sec=1){
   startdatetime <<- Sys.time()
   runs <<- period_to_seconds(hms(duration))*ticks.per.sec
@@ -245,7 +232,7 @@ ticker.record <- function(ID=NA, duration=NA, ticks.per.sec=1){
 
 
 
-ticker.record(ID = 'btc-gbp', duration = "00:01:00", ticks.per.sec = 1)
+ticker.record(ID = 'btc-gbp', duration = "00:00:10", ticks.per.sec = 1)
 
 
 
@@ -261,8 +248,8 @@ historic <-
            start = Sys.time() - 43200,
            end = Sys.time(),
            granularity = 300) {
-    start <- strftime(start, "%Y-%m-%dT%H:%M:%SZ", tz = system.timezone)
-    end <- strftime(end, "%Y-%m-%dT%H:%M:%SZ", tz = system.timezone)
+    start <- strftime(start, "%Y-%m-%dT%H:%M:%SZ", tz = s$system.timezone)
+    end <- strftime(end, "%Y-%m-%dT%H:%M:%SZ", tz = s$system.timezone)
     ID <- str_replace(ID, "/", "-")
     req.url <- paste0("/products/", ID, "/candles")
     param.url <-
@@ -270,20 +257,17 @@ historic <-
                 reserved = FALSE)
     method <- "GET"
     timestamp <- format(as.numeric(Sys.time()), digits = 13)
-    key <- base64Decode(secret, mode = "raw")
+    key <- base64Decode(s$secret, mode = "raw")
     what <- paste0(timestamp, toupper(method), req.url, param.url)
     sign <- base64Encode(hmac(key, what, algo = "sha256", raw = TRUE))
     r <- GET(
-      url = paste0(api.url, req.url, param.url),
+      url = paste0(s$api.url, req.url, param.url),
       add_headers(
-        `CB-ACCESS-KEY` = api.key,
+        `CB-ACCESS-KEY` = s$api.key,
         `CB-ACCESS-SIGN` = sign,
         `CB-ACCESS-TIMESTAMP` = timestamp,
-        `CB-ACCESS-PASSPHRASE` = passphrase,
-        `Content-Type` = 'application/json',
-        `start` = "2021-01-01T17:05:49.250000Z",
-        `end` = "2021-01-02T17:05:49.250000Z",
-        `granulity` = 60
+        `CB-ACCESS-PASSPHRASE` = s$passphrase,
+        `Content-Type` = 'application/json'
       )
     ) # ONE DAY
     c <- content(r)
